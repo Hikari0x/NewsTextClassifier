@@ -24,6 +24,22 @@ device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 print("Using device:", device)
 
 
+# 工具函数，用于读取类别描述文件
+def load_label_map(path='../data/class.txt'):
+    """
+    读取类别描述文件
+    :param path: 类别描述文件路径
+    :return: dict {label_id: label_name}
+    """
+    label_map = {}
+    with open(path, 'r', encoding='utf-8') as f:
+        for line in f:
+            idx, name = line.strip().split(maxsplit=1)
+            label_map[int(idx)] = name
+        # print("label_map:", label_map)
+    return label_map
+
+
 # 0.数据验证
 def data_validation():
     """
@@ -81,7 +97,7 @@ def build_vocab():
     1.只用 train 构建词表：防止数据泄漏，防止验证集“偷看答案”
     2.使用jieba中文分词：使用lcut分词转列表
     3.main函数统一调用，返回值统一保存，消除隐式依赖
-    :return:1.train_texts_idx：2.word_to_idx
+    :return:1.train_texts_idx：返回一个二维列表，存储所有文本转词表索引，保持原数据结构 2.word_to_idx：返回一个字典，作为唯一词的词表
     """
     # 0.数据验证,获取数据
     train_data, val_data, test_data = data_clean()
@@ -130,13 +146,17 @@ def build_vocab():
 # 验证 / 测试文本数值化
 def texts_to_indices(texts, word_to_idx):
     """
-
+    1.把“验证 / 测试集的原始文本（字符串）” 转成“模型能吃的整数序列”
+    2.不建词表，不改词表，只用训练集学到的 word_to_idx
     :param texts:
     :param word_to_idx:
-    :return:
+    :return: 1.texts_idx：返回一个二维列表，存储索引版本的
     """
+    # 最终结果容器，二维列表
     texts_idx = []
+    # 遍历每行文本
     for text in texts:
+        # 中文分词，最大长度截断
         words = jieba.lcut(text)[:MAX_LEN]
         texts_idx.append(
             [word_to_idx.get(word, word_to_idx['<UNK>']) for word in words]
@@ -191,10 +211,21 @@ def collate_fn(batch):
 
 # 4.构建神经网络模型
 class NewsClassifier(nn.Module):
+    """
+    定义一个 PyTorch 的神经网络模型：
+    1.词嵌入层
+    2.循环网络层
+    3.输出层
+    """
     def __init__(self, vocab_size, num_class):
+        """
+        vocab_size: 词表大小，例如train中的test列有多少词
+        num_class: 分类数量，例如train的label列有多少种类
+        """
         super().__init__()
         # 1.词嵌入层
-        self.embedding = nn.Embedding(vocab_size, 128)
+        # 参数：词表大小，词嵌入维度
+        self.embedding = nn.Embedding(vocab_size, 64)
         # 2.循环网络层
         # self.rnn = nn.RNN(
         #     input_size=128,
@@ -202,14 +233,16 @@ class NewsClassifier(nn.Module):
         #     num_layers=1,
         #     batch_first=True
         # )
+        # 参数：input_size: 输入的维度，hidden_size: 隐藏层的维度，num_layers: 循环网络的层数，batch_first: 是否使用 batch_size 为第一维
         self.lstm = nn.LSTM(
-            input_size=128,
-            hidden_size=256,
+            input_size=64,
+            hidden_size=64,
             num_layers=1,
             batch_first=True
         )
         # 3.输出层
-        self.fc = nn.Linear(256, num_class)
+        # 参数：输入的维度，输出的维度
+        self.fc = nn.Linear(64, num_class)
 
     def forward(self, x):
         """
@@ -228,6 +261,7 @@ def train_model(train_texts_idx, word_to_idx):
     train_data, val_data, test_data = data_clean()
     # 2.构建词表
     # train_texts_idx, word_to_idx = build_vocab()
+    # 取出所有的行的标签存为列表
     labels = train_data['label'].tolist()
     # 3.数据集和数据加载器
     dataset = NewsDataset(train_texts_idx, labels)
@@ -239,6 +273,7 @@ def train_model(train_texts_idx, word_to_idx):
     )
     # 4.初始化模型
     vocab_size = len(word_to_idx)
+    # 分类的种类数量
     num_class = len(set(labels))
     # 模型，使用GPU
     model = NewsClassifier(vocab_size, num_class).to(device)
@@ -246,7 +281,7 @@ def train_model(train_texts_idx, word_to_idx):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     # 6.循环训练模型
-    epochs = 15
+    epochs = 10
     for epoch in range(epochs):
         # 开始时间
         start = time.time()
@@ -273,7 +308,7 @@ def train_model(train_texts_idx, word_to_idx):
             f'time: {time.time() - start:.2f}s'
         )
     # 保存模型
-    torch.save(model.state_dict(), '../model/news_class_lstm_h256_e15.pth')
+    torch.save(model.state_dict(), '../model/news_lstm_i64_h64_e10_0p001.pth')
 
 
 # 6.模型验证，使用验证集val.csv
@@ -298,9 +333,11 @@ def evaluate_model(word_to_idx):
     )
     # 5.加载模型
     vocab_size = len(word_to_idx)
-    num_class = len(set(val_labels))
+    # 验证集的标签用自己的，但是标签种类数量需要使用train的，种类数量需要对齐
+    # num_class = len(set(val_labels))
+    num_class = len(set(train_data['label']))
     model = NewsClassifier(vocab_size, num_class).to(device)
-    model_path = '../model/news_class_lstm_h256_e15.pth'
+    model_path = '../model/news_lstm_i64_h64_e10_0p001.pth'
     model.load_state_dict(torch.load(model_path, map_location=device))
     # 7.切换为评估模式
     model.eval()
@@ -320,12 +357,60 @@ def evaluate_model(word_to_idx):
     acc = accuracy_score(all_labels, all_preds)
     print(f'[val_acc] {acc:.4f}\t[model_path]{model_path}')
     print(f'{'-' * 30}结束模型验证{'-' * 30}')
-    return 0
 
 
 # 7.模型测试，使用测试集test.csv
-# def test_model():
-#     pass
+def model_test(word_to_idx):
+    """
+    模型测试（无真实标签）：
+    1. 使用训练好的模型对 test.csv 进行预测
+    2. 将预测的类别 id 与中文类别名保存为 CSV
+    """
+    print(f'{'-' * 30}开始模型测试{'-' * 30}')
+
+    # 1. 加载数据
+    train_data, _, test_data = data_clean()
+    # lable全0占位，只取test列
+    test_texts = test_data['text'].tolist()
+    # 2. 文本数值化
+    test_texts_idx = texts_to_indices(test_texts, word_to_idx)
+    # 3. 构建 Dataset & DataLoader
+    dummy_labels = [0] * len(test_texts)  # 占位，不参与计算
+    test_dataset = NewsDataset(test_texts_idx, dummy_labels)
+    test_dataloader = DataLoader(
+        test_dataset,
+        batch_size=32,
+        shuffle=False,
+        collate_fn=collate_fn
+    )
+    # 4. 加载模型
+    vocab_size = len(word_to_idx)
+    num_class = len(set(train_data['label'].tolist()))
+    model = NewsClassifier(vocab_size, num_class).to(device)
+    model_path = '../model/news_lstm_i64_h64_e10_0p001.pth'
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.eval()
+    # 5. 加载类别映射
+    label_map = load_label_map()
+    # 6. 推理
+    all_preds = []
+    with torch.no_grad():
+        for texts, _ in test_dataloader:
+            texts = texts.to(device)
+            outputs = model(texts)
+            preds = torch.argmax(outputs, dim=1)
+            all_preds.extend(preds.cpu().numpy())
+    # 7. 保存结果
+    result_df = pd.DataFrame({
+        'text': test_texts,
+        'pred_label_id': all_preds,
+        'pred_label_name': [label_map[i] for i in all_preds]
+    })
+    save_path = '../data/test_prediction_result.csv'
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    result_df.to_csv(save_path, index=False, encoding='utf-8-sig')
+    print(f'预测结果已保存至：{save_path}')
+    print(f'{'-' * 30}结束模型测试{'-' * 30}')
 
 
 # 8.数据可视化
@@ -345,6 +430,8 @@ def main():
     train_model(train_texts_idx, word_to_idx)
     # 6.评估模型
     evaluate_model(word_to_idx)
+    # 7.模型测试
+    model_test(word_to_idx)
 
 
 if __name__ == '__main__':
