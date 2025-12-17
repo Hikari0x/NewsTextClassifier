@@ -66,33 +66,88 @@ def data_clean():
 
 # 2.分词，构建词表
 def build_vocab():
-    # 0.数据验证
+    # 0.数据验证,获取数据
     train_data, val_data, test_data = data_validation()
 
     # 1.对train文本进行分词
-    # 定义：总所有的分词列表
+    # 所有的分词列表，二维
     train_texts = []
+    # 所有的分词列表，一维
+    all_words = []
     # 遍历每行文本并分词，一行为一个分词列表
     for text in train_data['text']:
+        # 每一行的分词结果
         participle = jieba.lcut(text)
         # print(participle)
         # 添加到总列表中
-        train_texts.extend(participle)
+        # 保留二维的结构
+        train_texts.append(participle)
+        # 打平为一维
+        all_words.extend(participle)
     print(f'train_texts：{len(train_texts)}')
+    print(f'all_words：{len(all_words)}\t{all_words[:10]}')
     # 2.去重，集合去重转列表
-    train_texts_unique = list(set(train_texts))
+    train_texts_unique = list(set(all_words))
     print(f'train_texts_unique：{len(train_texts_unique)}')
     # 3.词频，统计每个词出现的次数
-    word_counter = Counter(train_texts)
+    word_counter = Counter(all_words)
     print(f'word_counter：{len(word_counter)}')
     # 4.构建词表，全保留
-    word_to_idx= {word: idx for idx, word in enumerate(train_texts_unique)}
+    # word_to_idx = {word: idx for idx, word in enumerate(train_texts_unique)}
+    word_to_idx = {'<PAD>': 0, '<UNK>': 1}
+    # 索引从2开始,追加元素
+    id_idx = 2
+    for word in train_texts_unique:
+        word_to_idx[word] = id_idx
+        id_idx += 1
     print(f'word_to_idx：{len(word_to_idx)},{type(word_to_idx)}')
+    # 5.文本数值化，文本使用索引表示，存储在列表中，为了Dataset 和 label 对齐
+    # train_texts_idx = [word_to_idx[word] for word in all_words]
+    train_texts_idx = [
+        [word_to_idx[word] for word in text]
+        for text in train_texts
+    ]
+    print(f'train_texts_idx：{len(train_texts_idx)}\t{type(train_texts_idx)}\t{train_texts_idx[:5]}')
+
+    # 返回结果
+    return train_texts_idx, word_to_idx
+
+
+def texts_to_indices(texts, word_to_idx):
+    texts_idx = []
+    for text in texts:
+        words = jieba.lcut(text)
+        texts_idx.append([word_to_idx[word] for word in words])
+    return texts_idx
 
 
 # 3.数据集封装
 class NewsDataset(Dataset):
-    pass
+    def __init__(self, texts, labels):
+        """
+
+        :param texts: 二维列表，每一条是一个词索引列表
+        :param labels: 一维列表，对应每条文本的标签
+        """
+        self.texts = texts
+        self.labels = labels
+
+    def __len__(self):
+        """
+
+        :return: 返回数据集一共有多少条样本
+        """
+        return len(self.texts)
+
+    def __getitem__(self, idx):
+        """
+        根据索引 idx，取出一条数据
+        :param idx:
+        :return:
+        """
+        text = self.texts[idx]
+        label = self.labels[idx]
+        return text, label
 
 
 # 4.构建神经网络模型
@@ -130,6 +185,8 @@ def main():
 
     # 2.分词，构建词表
     build_vocab()
+
+    # 3.数据集封装
 
 
 if __name__ == '__main__':
