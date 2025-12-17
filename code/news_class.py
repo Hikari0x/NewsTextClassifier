@@ -23,6 +23,10 @@ print("Using device:", device)
 
 # 0.数据验证
 def data_validation():
+    """
+    只负责检查数据是否“能不能用”，不做任何处理
+    :return:
+    """
     print(f'{'-' * 30}开始数据检查{'-' * 30}')
     # 1. 读取数据
     train_data = pd.read_csv('../data/train.csv')
@@ -57,7 +61,7 @@ def data_validation():
 
 
 
-# 1.数据清洗
+# 1.数据读取和清洗
 def data_clean():
     """
     数据没有缺失值，可以不动，尽量不破坏原数据
@@ -71,6 +75,12 @@ def data_clean():
 
 # 2.分词，构建词表
 def build_vocab():
+    """
+    1.只用 train 构建词表：防止数据泄漏，防止验证集“偷看答案”
+    2.使用jieba中文分词：RNN不能吃字符串，使用lcut分词转列表
+    3.
+    :return:
+    """
     # 0.数据验证,获取数据
     train_data, val_data, test_data = data_clean()
     # 1.对train文本进行分词
@@ -114,7 +124,7 @@ def build_vocab():
     print(f'train_texts_idx：{len(train_texts_idx)}\t{type(train_texts_idx)}\t{train_texts_idx[:5]}')
     return train_texts_idx, word_to_idx
 
-
+# 验证 / 测试文本数值化
 def texts_to_indices(texts, word_to_idx):
     texts_idx = []
     for text in texts:
@@ -177,7 +187,13 @@ class NewsClassifier(nn.Module):
         # 1.词嵌入层
         self.embedding = nn.Embedding(vocab_size, 128)
         # 2.循环网络层
-        self.rnn = nn.RNN(
+        # self.rnn = nn.RNN(
+        #     input_size=128,
+        #     hidden_size=256,
+        #     num_layers=1,
+        #     batch_first=True
+        # )
+        self.lstm = nn.LSTM(
             input_size=128,
             hidden_size=256,
             num_layers=1,
@@ -191,7 +207,7 @@ class NewsClassifier(nn.Module):
         x: [batch_size, seq_len]
         """
         x = self.embedding(x)  # [batch, seq_len, 128]
-        _, hidden = self.rnn(x)  # hidden: [1, batch, 256]
+        _, (hidden, _) = self.lstm(x)  # hidden: [1, batch, 256]
         hidden = hidden.squeeze(0)
         out = self.fc(hidden)  # [batch, num_classes]
         return out
@@ -221,7 +237,7 @@ def train_model():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     # 6.循环训练模型
-    epochs = 15
+    epochs = 10
     for epoch in range(epochs):
         # 开始时间
         start = time.time()
@@ -248,7 +264,7 @@ def train_model():
             f'time: {time.time() - start:.2f}s'
         )
     # 保存模型
-    torch.save(model.state_dict(), '../model/news_class_rnn_h256_e15.pth')
+    torch.save(model.state_dict(), '../model/news_class_lstm_h256_e15.pth')
 
 
 # 6.模型验证，使用验证集val.csv
@@ -275,7 +291,7 @@ def evaluate_model():
     vocab_size = len(word_to_idx)
     num_class = len(set(val_labels))
     model = NewsClassifier(vocab_size, num_class).to(device)
-    model_path = '../model/news_class_rnn_h128_e15.pth'
+    model_path = '../model/news_class_lstm_h256_e15.pth'
     model.load_state_dict(torch.load(model_path, map_location=device))
     # 7.切换为评估模式
     model.eval()
@@ -319,7 +335,7 @@ def main():
     # 5.训练模型
     train_model()
     # 6.评估模型
-    # evaluate_model()
+    evaluate_model()
 
 
 if __name__ == '__main__':
