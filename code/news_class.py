@@ -16,6 +16,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 from torch.utils.data import DataLoader, Dataset
 
 
+
 # 0.数据验证
 def data_validation():
     print(f'{'-' * 30}开始数据检查{'-' * 30}')
@@ -186,7 +187,7 @@ def main():
     # 2.分词，构建词表
     build_vocab()
 
-    # 3.数据集封装
+    #
 
 
 if __name__ == '__main__':
