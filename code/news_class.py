@@ -16,6 +16,9 @@ import torch.optim as optim
 from sklearn.metrics import accuracy_score, confusion_matrix
 from torch.utils.data import DataLoader, Dataset
 
+# 设置最大文本长度
+MAX_LEN = 200
+
 # 设备选择：优先使用 Apple GPU (MPS)
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 print("Using device:", device)
@@ -60,7 +63,6 @@ def data_validation():
     print(f'{'-' * 30}数据检查结束{'-' * 30}')
 
 
-
 # 1.数据读取和清洗
 def data_clean():
     """
@@ -77,9 +79,9 @@ def data_clean():
 def build_vocab():
     """
     1.只用 train 构建词表：防止数据泄漏，防止验证集“偷看答案”
-    2.使用jieba中文分词：RNN不能吃字符串，使用lcut分词转列表
-    3.
-    :return:
+    2.使用jieba中文分词：使用lcut分词转列表
+    3.main函数统一调用，返回值统一保存，消除隐式依赖
+    :return:1.train_texts_idx：2.word_to_idx
     """
     # 0.数据验证,获取数据
     train_data, val_data, test_data = data_clean()
@@ -91,7 +93,7 @@ def build_vocab():
     # 遍历每行文本并分词，一行为一个分词列表
     for text in train_data['text']:
         # 每一行的分词结果
-        participle = jieba.lcut(text)
+        participle = jieba.lcut(text)[:MAX_LEN]
         # print(participle)
         # 添加到总列表中
         # 保留二维的结构
@@ -124,11 +126,18 @@ def build_vocab():
     print(f'train_texts_idx：{len(train_texts_idx)}\t{type(train_texts_idx)}\t{train_texts_idx[:5]}')
     return train_texts_idx, word_to_idx
 
+
 # 验证 / 测试文本数值化
 def texts_to_indices(texts, word_to_idx):
+    """
+
+    :param texts:
+    :param word_to_idx:
+    :return:
+    """
     texts_idx = []
     for text in texts:
-        words = jieba.lcut(text)
+        words = jieba.lcut(text)[:MAX_LEN]
         texts_idx.append(
             [word_to_idx.get(word, word_to_idx['<UNK>']) for word in words]
         )
@@ -214,11 +223,11 @@ class NewsClassifier(nn.Module):
 
 
 # 5.训练模型，使用训练集train.csv
-def train_model():
+def train_model(train_texts_idx, word_to_idx):
     # 1.获取数据
     train_data, val_data, test_data = data_clean()
     # 2.构建词表
-    train_texts_idx, word_to_idx = build_vocab()
+    # train_texts_idx, word_to_idx = build_vocab()
     labels = train_data['label'].tolist()
     # 3.数据集和数据加载器
     dataset = NewsDataset(train_texts_idx, labels)
@@ -237,7 +246,7 @@ def train_model():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     # 6.循环训练模型
-    epochs = 10
+    epochs = 15
     for epoch in range(epochs):
         # 开始时间
         start = time.time()
@@ -268,12 +277,12 @@ def train_model():
 
 
 # 6.模型验证，使用验证集val.csv
-def evaluate_model():
+def evaluate_model(word_to_idx):
     print(f'{'-' * 30}开始模型验证{'-' * 30}')
     # 1.加载数据
     train_data, val_data, test_data = data_clean()
     # 2.构建词表
-    train_texts_idx, word_to_idx = build_vocab()
+    # train_texts_idx, word_to_idx = build_vocab()
     # 3.处理验证集文本和标签
     val_texts = val_data['text'].tolist()
     val_labels = val_data['label'].tolist()
@@ -331,11 +340,11 @@ def main():
     # 1.数据清洗
     # data_clean()
     # 2.分词，构建词表
-    # build_vocab()
+    train_texts_idx, word_to_idx = build_vocab()
     # 5.训练模型
-    train_model()
+    train_model(train_texts_idx, word_to_idx)
     # 6.评估模型
-    evaluate_model()
+    evaluate_model(word_to_idx)
 
 
 if __name__ == '__main__':
