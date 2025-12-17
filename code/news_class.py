@@ -116,14 +116,14 @@ def build_vocab():
         train_texts.append(participle)
         # 打平为一维
         all_words.extend(participle)
-    print(f'train_texts：{len(train_texts)}')
-    print(f'all_words：{len(all_words)}\t{all_words[:10]}')
+    # print(f'train_texts：{len(train_texts)}')
+    # print(f'all_words：{len(all_words)}\t{all_words[:10]}')
     # 2.去重，集合去重转列表
     train_texts_unique = list(set(all_words))
-    print(f'train_texts_unique：{len(train_texts_unique)}')
+    # print(f'train_texts_unique：{len(train_texts_unique)}')
     # 3.词频，统计每个词出现的次数
     word_counter = Counter(all_words)
-    print(f'word_counter：{len(word_counter)}')
+    # print(f'word_counter：{len(word_counter)}')
     # 4.构建词表，全保留
     # word_to_idx = {word: idx for idx, word in enumerate(train_texts_unique)}
     word_to_idx = {'<PAD>': 0, '<UNK>': 1}
@@ -132,14 +132,14 @@ def build_vocab():
     for word in train_texts_unique:
         word_to_idx[word] = id_idx
         id_idx += 1
-    print(f'word_to_idx：{len(word_to_idx)},{type(word_to_idx)}')
+    # print(f'word_to_idx：{len(word_to_idx)},{type(word_to_idx)}')
     # 5.文本数值化，文本使用索引表示，存储在列表中，为了Dataset 和 label 对齐
     # train_texts_idx = [word_to_idx[word] for word in all_words]
     train_texts_idx = [
         [word_to_idx[word] for word in text]
         for text in train_texts
     ]
-    print(f'train_texts_idx：{len(train_texts_idx)}\t{type(train_texts_idx)}\t{train_texts_idx[:5]}')
+    # print(f'train_texts_idx：{len(train_texts_idx)}\t{type(train_texts_idx)}\t{train_texts_idx[:5]}')
     return train_texts_idx, word_to_idx
 
 
