@@ -20,20 +20,18 @@ from torch.utils.data import DataLoader, Dataset
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 print("Using device:", device)
 
+
 # 0.数据验证
 def data_validation():
     print(f'{'-' * 30}开始数据检查{'-' * 30}')
-
     # 1. 读取数据
     train_data = pd.read_csv('../data/train.csv')
     val_data = pd.read_csv('../data/val.csv')
     test_data = pd.read_csv('../data/test.csv')
-
     # 2. 基本信息
     print('[train_data]', train_data.shape, train_data.head())
     print('[val_data]', val_data.shape, val_data.head())
     print('[test_data]', test_data.shape, test_data.head())
-
     # 3.列结构检查
     print(train_data.columns)
     print(val_data.columns)
@@ -44,7 +42,6 @@ def data_validation():
     assert 'label' in val_data.columns, 'val.csv 缺少 label 列'
     assert 'text' in test_data.columns, 'test.csv 缺少 text 列'
     assert 'label' in test_data.columns, 'test.csv 缺少 label 列'
-
     # 4.缺失值检查
     train_text_nan = train_data['text'].isna().sum()
     val_text_nan = val_data['text'].isna().sum()
@@ -56,10 +53,7 @@ def data_validation():
     print('[test_text_nan]', test_text_nan)
     print('[train_label_nan]', train_label_nan)
     print('[val_label_nan]', val_label_nan)
-
     print(f'{'-' * 30}数据检查结束{'-' * 30}')
-
-    # 返回数据
     return train_data, val_data, test_data
 
 
@@ -72,7 +66,6 @@ def data_clean():
 def build_vocab():
     # 0.数据验证,获取数据
     train_data, val_data, test_data = data_validation()
-
     # 1.对train文本进行分词
     # 所有的分词列表，二维
     train_texts = []
@@ -112,8 +105,6 @@ def build_vocab():
         for text in train_texts
     ]
     print(f'train_texts_idx：{len(train_texts_idx)}\t{type(train_texts_idx)}\t{train_texts_idx[:5]}')
-
-    # 返回结果
     return train_texts_idx, word_to_idx
 
 
@@ -158,9 +149,7 @@ def collate_fn(batch):
     """
     batch: [(text1, label1), (text2, label2), ...]
     """
-
     texts, labels = zip(*batch)
-
     # 找 batch 中最长句子
     max_len = max(len(text) for text in texts)
     padded_texts = []
@@ -169,7 +158,6 @@ def collate_fn(batch):
         padded_texts.append(padded)
     texts_tensor = torch.tensor(padded_texts, dtype=torch.long)
     labels_tensor = torch.tensor(labels, dtype=torch.long)
-
     return texts_tensor, labels_tensor
 
 
@@ -177,10 +165,8 @@ def collate_fn(batch):
 class NewsClassifier(nn.Module):
     def __init__(self, vocab_size, num_class):
         super().__init__()
-
         # 1.词嵌入层
         self.embedding = nn.Embedding(vocab_size, 128)
-
         # 2.循环网络层
         self.rnn = nn.RNN(
             input_size=128,
@@ -188,7 +174,6 @@ class NewsClassifier(nn.Module):
             num_layers=1,
             batch_first=True
         )
-
         # 3.输出层
         self.fc = nn.Linear(128, num_class)
 
@@ -259,7 +244,49 @@ def train_model():
 
 # 6.模型验证，使用验证集val.csv
 def evaluate_model():
-    pass
+    print(f'{'-' * 30}开始模型验证{'-' * 30}')
+    # 1.加载数据
+    train_data, val_data, test_data = data_validation()
+    # 2.构建词表
+    train_texts_idx, word_to_idx = build_vocab()
+    # 3.处理验证集文本和标签
+    val_texts = val_data['text'].tolist()
+    val_labels = val_data['label'].tolist()
+    # 文本转为词索引
+    val_texts_idx = texts_to_indices(val_texts, word_to_idx)
+    # 4.构建验证集 Dataset 和 DataLoader
+    val_dataset = NewsDataset(val_texts_idx, val_labels)
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=32,
+        shuffle=False,
+        collate_fn=collate_fn
+    )
+    # 5.加载模型
+    vocab_size = len(word_to_idx)
+    num_class = len(set(val_labels))
+    model = NewsClassifier(vocab_size, num_class).to(device)
+    model_path = '../model/news_class_rnn_h64_e10.pth'
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    # 7.切换为评估模式
+    model.eval()
+    # 8.开始验证
+    all_preds = []
+    all_labels = []
+    # 验证阶段不需要梯度
+    with torch.no_grad():
+        for texts, labels in val_dataloader:
+            texts = texts.to(device)
+            labels = labels.to(device)
+            outputs = model(texts)
+            preds = torch.argmax(outputs, dim=1)
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+    # 计算准确率
+    acc = accuracy_score(all_labels, all_preds)
+    print(f'[val_acc] {acc:.4f}')
+    print(f'{'-' * 30}结束模型验证{'-' * 30}')
+    return 0
 
 
 # 7.模型测试，使用测试集test.csv
@@ -268,22 +295,22 @@ def evaluate_model():
 
 
 # 8.数据可视化
-def data_visualize():
-    pass
+# def data_visualize():
+#     pass
 
 
 # 主函数
 def main():
     # 0.数据验证
-    data_validation()
+    # data_validation()
     # 1.数据清洗
     # data_clean()
     # 2.分词，构建词表
     # build_vocab()
     # 5.训练模型
-    train_model()
+    # train_model()
     # 6.评估模型
-    # evaluate_model()
+    evaluate_model()
 
 
 if __name__ == '__main__':
