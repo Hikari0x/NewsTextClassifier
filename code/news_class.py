@@ -225,7 +225,7 @@ class NewsClassifier(nn.Module):
         super().__init__()
         # 1.词嵌入层
         # 参数：词表大小，词嵌入维度
-        self.embedding = nn.Embedding(vocab_size, 64)
+        self.embedding = nn.Embedding(vocab_size, 128)
         # 2.循环网络层
         # self.rnn = nn.RNN(
         #     input_size=128,
@@ -235,7 +235,7 @@ class NewsClassifier(nn.Module):
         # )
         # 参数：input_size: 输入的维度，hidden_size: 隐藏层的维度，num_layers: 循环网络的层数，batch_first: 是否使用 batch_size 为第一维
         self.lstm = nn.LSTM(
-            input_size=64,
+            input_size=128,
             hidden_size=64,
             num_layers=1,
             batch_first=True
@@ -308,7 +308,7 @@ def train_model(train_texts_idx, word_to_idx):
             f'time: {time.time() - start:.2f}s'
         )
     # 保存模型
-    torch.save(model.state_dict(), '../model/news_lstm_i64_h64_e10_0p001.pth')
+    torch.save(model.state_dict(), '../model/news_lstm_i128_h64_e10_0p001.pth')
 
 
 # 6.模型验证，使用验证集val.csv
@@ -337,7 +337,7 @@ def evaluate_model(word_to_idx):
     # num_class = len(set(val_labels))
     num_class = len(set(train_data['label']))
     model = NewsClassifier(vocab_size, num_class).to(device)
-    model_path = '../model/news_lstm_i64_h64_e10_0p001.pth'
+    model_path = '../model/news_lstm_i128_h64_e10_0p001.pth'
     model.load_state_dict(torch.load(model_path, map_location=device))
     # 7.切换为评估模式
     model.eval()
@@ -387,7 +387,7 @@ def model_test(word_to_idx):
     vocab_size = len(word_to_idx)
     num_class = len(set(train_data['label'].tolist()))
     model = NewsClassifier(vocab_size, num_class).to(device)
-    model_path = '../model/news_lstm_i64_h64_e10_0p001.pth'
+    model_path = '../model/news_lstm_i128_h64_e10_0p001.pth'
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
     # 5. 加载类别映射
