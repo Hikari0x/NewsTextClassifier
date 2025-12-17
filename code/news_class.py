@@ -16,6 +16,9 @@ import torch.optim as optim
 from sklearn.metrics import accuracy_score, confusion_matrix
 from torch.utils.data import DataLoader, Dataset
 
+# 设备选择：优先使用 Apple GPU (MPS)
+device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+print("Using device:", device)
 
 # 0.数据验证
 def data_validation():
@@ -181,13 +184,13 @@ class NewsClassifier(nn.Module):
         # 2.循环网络层
         self.rnn = nn.RNN(
             input_size=128,
-            hidden_size=256,
+            hidden_size=128,
             num_layers=1,
             batch_first=True
         )
 
         # 3.输出层
-        self.fc = nn.Linear(256, num_class)
+        self.fc = nn.Linear(128, num_class)
 
     def forward(self, x):
         """
@@ -218,17 +221,23 @@ def train_model():
     # 4.初始化模型
     vocab_size = len(word_to_idx)
     num_class = len(set(labels))
-    model = NewsClassifier(vocab_size, num_class)
+    # 模型，使用GPU
+    model = NewsClassifier(vocab_size, num_class).to(device)
     # 5.损失函数和优化器
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     # 6.循环训练模型
-    epochs = 5
+    epochs = 15
     for epoch in range(epochs):
+        # 开始时间
         start = time.time()
+        # 迭代次数
+        iter_num = 0
         # 总损失
         total_loss = 0
         for texts, labels in dataloader:
+            texts = texts.to(device)
+            labels = labels.to(device)
             outputs = model(texts)
             loss = criterion(outputs, labels)
             # 梯度清零，反向传播，更新参数
@@ -237,14 +246,15 @@ def train_model():
             optimizer.step()
             # 累加损失
             total_loss += loss.item()
+            iter_num += 1
         # 打印本轮训练信息
         print(
             f'epoch [{epoch + 1}/{epochs}] '
-            f'loss: {total_loss:.4f} '
+            f'loss: {total_loss / iter_num:.4f} '
             f'time: {time.time() - start:.2f}s'
         )
     # 保存模型
-    torch.save(model.state_dict(), '../model/news_class_rnn_h256_e5.pth')
+    torch.save(model.state_dict(), '../model/news_class_rnn_h128_e15.pth')
 
 
 # 6.模型验证，使用验证集val.csv
@@ -265,7 +275,7 @@ def data_visualize():
 # 主函数
 def main():
     # 0.数据验证
-    # data_validation()
+    data_validation()
     # 1.数据清洗
     # data_clean()
     # 2.分词，构建词表
