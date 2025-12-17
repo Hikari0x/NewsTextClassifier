@@ -54,18 +54,25 @@ def data_validation():
     print('[train_label_nan]', train_label_nan)
     print('[val_label_nan]', val_label_nan)
     print(f'{'-' * 30}数据检查结束{'-' * 30}')
-    return train_data, val_data, test_data
+
 
 
 # 1.数据清洗
 def data_clean():
-    pass
+    """
+    数据没有缺失值，可以不动，尽量不破坏原数据
+    :return: 返回三个读取的数据文件
+    """
+    train_data = pd.read_csv('../data/train.csv')
+    val_data = pd.read_csv('../data/val.csv')
+    test_data = pd.read_csv('../data/test.csv')
+    return train_data, val_data, test_data
 
 
 # 2.分词，构建词表
 def build_vocab():
     # 0.数据验证,获取数据
-    train_data, val_data, test_data = data_validation()
+    train_data, val_data, test_data = data_clean()
     # 1.对train文本进行分词
     # 所有的分词列表，二维
     train_texts = []
@@ -112,7 +119,9 @@ def texts_to_indices(texts, word_to_idx):
     texts_idx = []
     for text in texts:
         words = jieba.lcut(text)
-        texts_idx.append([word_to_idx[word] for word in words])
+        texts_idx.append(
+            [word_to_idx.get(word, word_to_idx['<UNK>']) for word in words]
+        )
     return texts_idx
 
 
@@ -170,12 +179,12 @@ class NewsClassifier(nn.Module):
         # 2.循环网络层
         self.rnn = nn.RNN(
             input_size=128,
-            hidden_size=128,
+            hidden_size=256,
             num_layers=1,
             batch_first=True
         )
         # 3.输出层
-        self.fc = nn.Linear(128, num_class)
+        self.fc = nn.Linear(256, num_class)
 
     def forward(self, x):
         """
@@ -191,7 +200,7 @@ class NewsClassifier(nn.Module):
 # 5.训练模型，使用训练集train.csv
 def train_model():
     # 1.获取数据
-    train_data, val_data, test_data = data_validation()
+    train_data, val_data, test_data = data_clean()
     # 2.构建词表
     train_texts_idx, word_to_idx = build_vocab()
     labels = train_data['label'].tolist()
@@ -239,14 +248,14 @@ def train_model():
             f'time: {time.time() - start:.2f}s'
         )
     # 保存模型
-    torch.save(model.state_dict(), '../model/news_class_rnn_h128_e15.pth')
+    torch.save(model.state_dict(), '../model/news_class_rnn_h256_e15.pth')
 
 
 # 6.模型验证，使用验证集val.csv
 def evaluate_model():
     print(f'{'-' * 30}开始模型验证{'-' * 30}')
     # 1.加载数据
-    train_data, val_data, test_data = data_validation()
+    train_data, val_data, test_data = data_clean()
     # 2.构建词表
     train_texts_idx, word_to_idx = build_vocab()
     # 3.处理验证集文本和标签
@@ -266,7 +275,7 @@ def evaluate_model():
     vocab_size = len(word_to_idx)
     num_class = len(set(val_labels))
     model = NewsClassifier(vocab_size, num_class).to(device)
-    model_path = '../model/news_class_rnn_h64_e10.pth'
+    model_path = '../model/news_class_rnn_h128_e15.pth'
     model.load_state_dict(torch.load(model_path, map_location=device))
     # 7.切换为评估模式
     model.eval()
@@ -284,7 +293,7 @@ def evaluate_model():
             all_labels.extend(labels.cpu().numpy())
     # 计算准确率
     acc = accuracy_score(all_labels, all_preds)
-    print(f'[val_acc] {acc:.4f}')
+    print(f'[val_acc] {acc:.4f}\t[model_path]{model_path}')
     print(f'{'-' * 30}结束模型验证{'-' * 30}')
     return 0
 
@@ -302,15 +311,15 @@ def evaluate_model():
 # 主函数
 def main():
     # 0.数据验证
-    # data_validation()
+    data_validation()
     # 1.数据清洗
     # data_clean()
     # 2.分词，构建词表
     # build_vocab()
     # 5.训练模型
-    # train_model()
+    train_model()
     # 6.评估模型
-    evaluate_model()
+    # evaluate_model()
 
 
 if __name__ == '__main__':
