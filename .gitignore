@@ -16,6 +16,7 @@ __pycache__/
 # Virtual Environment
 venv/
 .venv/
+.conda/
 
 # Jupyter
 .ipynb_checkpoints/
