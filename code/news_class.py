@@ -77,6 +77,17 @@ def data_validation():
     print('[train_label_nan]', train_label_nan)
     print('[val_label_nan]', val_label_nan)
     print(f'{'-' * 30}数据检查结束{'-' * 30}')
+    # 数据可视化
+    counts = train_data['label'].value_counts().sort_index()
+    counts.plot(kind='bar')
+    plt.title('Train Label Distribution')
+    plt.xlabel('Label')
+    plt.ylabel('Count')
+    for i, v in enumerate(counts):
+        plt.text(i, v + 100, str(v), ha='center', fontsize=8)
+    plt.tight_layout()
+    plt.savefig('../data/images/label_dist.png')
+    plt.close()
 
 
 # 1.数据读取和清洗
@@ -195,7 +206,9 @@ class NewsDataset(Dataset):
 
 def collate_fn(batch):
     """
-    batch: [(text1, label1), (text2, label2), ...]
+    用于定义 DataLoader 在生成一个 batch 时，如何将多条样本进行组合、补齐和张量化
+    :param batch:
+    :return:
     """
     texts, labels = zip(*batch)
     # 找 batch 中最长句子
@@ -217,6 +230,7 @@ class NewsClassifier(nn.Module):
     2.循环网络层
     3.输出层
     """
+
     def __init__(self, vocab_size, num_class):
         """
         vocab_size: 词表大小，例如train中的test列有多少词
@@ -236,13 +250,13 @@ class NewsClassifier(nn.Module):
         # 参数：input_size: 输入的维度，hidden_size: 隐藏层的维度，num_layers: 循环网络的层数，batch_first: 是否使用 batch_size 为第一维
         self.lstm = nn.LSTM(
             input_size=128,
-            hidden_size=64,
+            hidden_size=512,
             num_layers=1,
             batch_first=True
         )
         # 3.输出层
         # 参数：输入的维度，输出的维度
-        self.fc = nn.Linear(64, num_class)
+        self.fc = nn.Linear(512, num_class)
 
     def forward(self, x):
         """
@@ -281,7 +295,8 @@ def train_model(train_texts_idx, word_to_idx):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     # 6.循环训练模型
-    epochs = 10
+    epochs = 20
+    train_losses = []
     for epoch in range(epochs):
         # 开始时间
         start = time.time()
@@ -307,8 +322,17 @@ def train_model(train_texts_idx, word_to_idx):
             f'loss: {total_loss / iter_num:.4f} '
             f'time: {time.time() - start:.2f}s'
         )
+        # 保存训练损失
+        train_losses.append(total_loss / iter_num)
+    # 绘制训练损失曲线
+    plt.plot(train_losses)
+    plt.title('Training Loss Curve')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.savefig('../data/images/train_loss.png')
+    plt.close()
     # 保存模型
-    torch.save(model.state_dict(), '../model/news_lstm_i128_h64_e10_0p001.pth')
+    torch.save(model.state_dict(), '../model/news_lstm_i128_h512_e20_0p001.pth')
 
 
 # 6.模型验证，使用验证集val.csv
@@ -337,7 +361,7 @@ def evaluate_model(word_to_idx):
     # num_class = len(set(val_labels))
     num_class = len(set(train_data['label']))
     model = NewsClassifier(vocab_size, num_class).to(device)
-    model_path = '../model/news_lstm_i128_h64_e10_0p001.pth'
+    model_path = '../model/news_lstm_i128_h512_e20_0p001.pth'
     model.load_state_dict(torch.load(model_path, map_location=device))
     # 7.切换为评估模式
     model.eval()
@@ -357,6 +381,22 @@ def evaluate_model(word_to_idx):
     acc = accuracy_score(all_labels, all_preds)
     print(f'[val_acc] {acc:.4f}\t[model_path]{model_path}')
     print(f'{'-' * 30}结束模型验证{'-' * 30}')
+    # 混淆矩阵
+    cm = confusion_matrix(all_labels, all_preds)
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(
+        cm,
+        annot=False,  # 数字太多，先关掉
+        fmt='d',
+        cmap='Blues'
+    )
+    plt.xlabel('Predicted Label')
+    plt.ylabel('True Label')
+    plt.title('Validation Confusion Matrix')
+    # 保存图片
+    os.makedirs('../data', exist_ok=True)
+    plt.savefig('../data/images/confusion_matrix.png')
+    plt.close()
 
 
 # 7.模型测试，使用测试集test.csv
@@ -387,7 +427,7 @@ def model_test(word_to_idx):
     vocab_size = len(word_to_idx)
     num_class = len(set(train_data['label'].tolist()))
     model = NewsClassifier(vocab_size, num_class).to(device)
-    model_path = '../model/news_lstm_i128_h64_e10_0p001.pth'
+    model_path = '../model/news_lstm_i128_h512_e20_0p001.pth'
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
     # 5. 加载类别映射
@@ -403,19 +443,13 @@ def model_test(word_to_idx):
     # 7. 保存结果
     result_df = pd.DataFrame({
         'text': test_texts,
-        'pred_label_id': all_preds,
-        'pred_label_name': [label_map[i] for i in all_preds]
+        'label': all_preds
     })
-    save_path = '../data/test_prediction_result.csv'
+    save_path = '../data/李贺童2201140218.csv'
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     result_df.to_csv(save_path, index=False, encoding='utf-8-sig')
     print(f'预测结果已保存至：{save_path}')
     print(f'{'-' * 30}结束模型测试{'-' * 30}')
-
-
-# 8.数据可视化
-# def data_visualize():
-#     pass
 
 
 # 主函数

@@ -15,7 +15,7 @@ import torch.optim as optim
 from sklearn.metrics import accuracy_score, confusion_matrix
 from torch.utils.data import DataLoader, Dataset
 
-from news_class import (NewsClassifier, NewsDataset, build_vocab, data_clean, data_validation)
+from news_class import (NewsClassifier, NewsDataset, build_vocab, data_clean, data_validation,evaluate_model)
 
 
 # def test_model():
@@ -42,7 +42,30 @@ def dm02():
     print(f'num_class：{num_class}')
 
 
+def dm03():
+    """
+    数据可视化
+    :return:
+    """
+    train_data, val_data, test_data = data_clean()
+    train_texts_idx, word_to_idx = build_vocab()
+    evaluate_model(word_to_idx)
+    # 类别分布图
+    train_data['label'].value_counts().sort_index().plot(
+        kind='bar',
+        title='Train Label Distribution'
+    )
+    plt.savefig('../data/images/label_dist.png')
+    plt.close()
+
+
+def dm04():
+    data_validation()
+
+
 if __name__ == '__main__':
     # build_vocab()
-    dm01()
-    dm02()
+    # dm01()
+    # dm02()
+    # dm03()
+    dm04()
