@@ -21,9 +21,31 @@ from torch.utils.data import DataLoader, Dataset
 # 设置最大文本长度
 MAX_LEN = 200
 
+
 # 设备选择：优先使用 Apple GPU (MPS)
-device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-print("Using device:", device)
+# device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+# print("Using device:", device)
+
+def get_device():
+    """
+    自动选择运行设备：
+    1. 优先 CUDA（NVIDIA 显卡，如 RTX 3060）
+    2. 其次 MPS（Apple Silicon）
+    3. 最后 CPU
+    """
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        print("Using CUDA:", torch.cuda.get_device_name(0))
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+        print("Using Apple MPS GPU")
+    else:
+        device = torch.device("cpu")
+        print("Using CPU")
+    return device
+
+
+device = get_device()
 
 
 # 工具函数，用于读取类别描述文件
@@ -454,8 +476,8 @@ def model_test(word_to_idx):
     print(f'{'-' * 30}结束模型测试{'-' * 30}')
 
 
-# 主函数
-def main():
+# 测试函数
+def _test():
     # 0.数据验证
     data_validation()
     # 1.数据清洗
@@ -471,6 +493,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
-    time_consuming = time.time() - start
-    print(f'耗时：{time_consuming:.2f}s')
+    _test()
+    print(f'耗时：{time.time() - start:.2f}s')

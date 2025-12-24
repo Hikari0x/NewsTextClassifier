@@ -45,9 +45,9 @@ NewsTextClassifier
 
 ### 核心代码
 
-![img01](/Users/lihetong/Documents/synchronization/project/NewsTextClassifier/doc/images/ProjectReport/img01.png)
+![img01](/Users/lihetong/Documents/Workspace/project/NewsTextClassifier/doc/images/ProjectReport/img01.png)
 
-![img02](/Users/lihetong/Documents/synchronization/project/NewsTextClassifier/doc/images/ProjectReport/img02.png)
+![img02](/Users/lihetong/Documents/Workspace/project/NewsTextClassifier/doc/images/ProjectReport/img02.png)
 
 ## 思考过程
 
@@ -89,7 +89,7 @@ def data_clean():
     return train_data, val_data, test_data
 ```
 
-![label_dist](/Users/lihetong/Documents/synchronization/project/NewsTextClassifier/data/images/label_dist.png)
+![label_dist](/Users/lihetong/Documents/Workspace/project/NewsTextClassifier/data/images/label_dist.png)
 
 ### 2.分词，构建词表
 
@@ -357,7 +357,7 @@ ef evaluate_model(word_to_idx):
     plt.close()
 ```
 
-![confusion_matrix](/Users/lihetong/Documents/synchronization/project/NewsTextClassifier/data/images/confusion_matrix.png)
+![confusion_matrix](/Users/lihetong/Documents/Workspace/project/NewsTextClassifier/data/images/confusion_matrix.png)
 
 ### 7.模型测试
 
@@ -436,35 +436,35 @@ def model_test(word_to_idx):
 
 1. [news_lstm_i64_h64_e10_0p001.pth](../model/news_lstm_i64_h64_e10_0p001.pth) 
 
-![img04](/Users/lihetong/Documents/synchronization/project/NewsTextClassifier/doc/images/ProjectReport/img04.png)
+![img04](/Users/lihetong/Documents/Workspace/project/NewsTextClassifier/doc/images/ProjectReport/img04.png)
 
 2.  [news_lstm_i128_h64_e10_0p001.pth](../model/news_lstm_i128_h64_e10_0p001.pth) 
 
-![img05](/Users/lihetong/Documents/synchronization/project/NewsTextClassifier/doc/images/ProjectReport/img05.png)
+![img05](/Users/lihetong/Documents/Workspace/project/NewsTextClassifier/doc/images/ProjectReport/img05.png)
 
 3.  [news_lstm_i256_h64_e10_0p001.pth](../model/news_lstm_i256_h64_e10_0p001.pth) 
 
-![img06](/Users/lihetong/Documents/synchronization/project/NewsTextClassifier/doc/images/ProjectReport/img06.png)
+![img06](/Users/lihetong/Documents/Workspace/project/NewsTextClassifier/doc/images/ProjectReport/img06.png)
 
 4.  [news_lstm_i64_h128_e10_0p001.pth](../model/news_lstm_i64_h128_e10_0p001.pth) 
 
-![img07](/Users/lihetong/Documents/synchronization/project/NewsTextClassifier/doc/images/ProjectReport/img07.png)
+![img07](/Users/lihetong/Documents/Workspace/project/NewsTextClassifier/doc/images/ProjectReport/img07.png)
 
 5.  [news_lstm_i64_h256_e10_0p001.pth](../model/news_lstm_i64_h256_e10_0p001.pth) 
 
-![img08](/Users/lihetong/Documents/synchronization/project/NewsTextClassifier/doc/images/ProjectReport/img08.png)
+![img08](/Users/lihetong/Documents/Workspace/project/NewsTextClassifier/doc/images/ProjectReport/img08.png)
 
 6.  [news_lstm_i128_h256_e10_0p001.pth](../model/news_lstm_i128_h256_e10_0p001.pth) 
 
-![img09](/Users/lihetong/Documents/synchronization/project/NewsTextClassifier/doc/images/ProjectReport/img09.png)
+![img09](/Users/lihetong/Documents/Workspace/project/NewsTextClassifier/doc/images/ProjectReport/img09.png)
 
 7.  [news_lstm_i128_h256_e20_0p001.pth](../model/news_lstm_i128_h256_e20_0p001.pth) 
 
-![img11](/Users/lihetong/Documents/synchronization/project/NewsTextClassifier/doc/images/ProjectReport/img11.png)
+![img11](/Users/lihetong/Documents/Workspace/project/NewsTextClassifier/doc/images/ProjectReport/img11.png)
 
 8.  [news_lstm_i128_h512_e20_0p001.pth](../model/news_lstm_i128_h512_e20_0p001.pth) 
 
-![img12](/Users/lihetong/Documents/synchronization/project/NewsTextClassifier/doc/images/ProjectReport/img12.png)
+![img12](/Users/lihetong/Documents/Workspace/project/NewsTextClassifier/doc/images/ProjectReport/img12.png)
 
 ## 项目后续扩展
 
@@ -472,4 +472,7 @@ def model_test(word_to_idx):
 
 远程仓库GitHub地址：https://github.com/Hikari0x/NewsTextClassifier.git
 
-![img03](/Users/lihetong/Documents/synchronization/project/NewsTextClassifier/doc/images/ProjectReport/img03.png)
+![img03](images/ProjectReport/img03.png)
+
+
+

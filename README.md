@@ -29,12 +29,18 @@ NewsTextClassifier
 │   └── news_lstm_i128_h512_e20_0p001.pth	# 模型名称，规范参数命名
 └── README.md						# 项目说明
 ```
-
-
-
-## 5. Version History
-### v1.0 (2025-xx-xx)
+## 3. Environmental dependence
+- Python 3.13.9
+- PyTorch
+- NumPy
+- pandas
+## 4. Usage instructions
+1. Clone the repository
+## 5. Results
+## 6. Version History
+### v1.0 (2025-12-18)
 - Implemented LSTM-based news text classifier
 - Jieba tokenization + custom vocabulary
 - Train / Validation / Test pipeline completed
 - Test predictions exported to CSV with label names
+- After multiple experiments, the current model parameters represent the optimal solution, with an accuracy rate of 89%.
