@@ -274,13 +274,13 @@ class NewsClassifier(nn.Module):
         # 参数：input_size: 输入的维度，hidden_size: 隐藏层的维度，num_layers: 循环网络的层数，batch_first: 是否使用 batch_size 为第一维
         self.lstm = nn.LSTM(
             input_size=128,
-            hidden_size=512,
+            hidden_size=2048,
             num_layers=1,
             batch_first=True
         )
         # 3.输出层
         # 参数：输入的维度，输出的维度
-        self.fc = nn.Linear(512, num_class)
+        self.fc = nn.Linear(2048, num_class)
 
     def forward(self, x):
         """
@@ -317,9 +317,9 @@ def train_model(train_texts_idx, word_to_idx):
     model = NewsClassifier(vocab_size, num_class).to(device)
     # 5.损失函数和优化器
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.0005)
     # 6.循环训练模型
-    epochs = 20
+    epochs = 50
     train_losses = []
     for epoch in range(epochs):
         # 开始时间
@@ -356,7 +356,7 @@ def train_model(train_texts_idx, word_to_idx):
     plt.savefig('../data/images/train_loss.png')
     plt.close()
     # 保存模型
-    torch.save(model.state_dict(), '../model/news_lstm_i128_h512_e20_0p001.pth')
+    torch.save(model.state_dict(), '../model/news_lstm_i128_h2048_e50_0p0005.pth')
 
 
 # 6.模型验证，使用验证集val.csv
@@ -385,7 +385,7 @@ def evaluate_model(word_to_idx):
     # num_class = len(set(val_labels))
     num_class = len(set(train_data['label']))
     model = NewsClassifier(vocab_size, num_class).to(device)
-    model_path = '../model/news_lstm_i128_h512_e20_0p001.pth'
+    model_path = '../model/news_lstm_i128_h2048_e50_0p0005.pth'
     model.load_state_dict(torch.load(model_path, map_location=device))
     # 7.切换为评估模式
     model.eval()
@@ -451,7 +451,7 @@ def model_test(word_to_idx):
     vocab_size = len(word_to_idx)
     num_class = len(set(train_data['label'].tolist()))
     model = NewsClassifier(vocab_size, num_class).to(device)
-    model_path = '../model/news_lstm_i128_h512_e20_0p001.pth'
+    model_path = '../model/news_lstm_i128_h2048_e50_0p0005.pth'
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
     # 5. 加载类别映射
